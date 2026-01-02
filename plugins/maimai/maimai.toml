@@ -1,0 +1,11 @@
+# 麦麦适配器配置
+
+[maimai]
+enabled = true
+# MaiMBot连接信息
+host = "localhost"
+port = 8000
+# 心跳间隔（毫秒）
+heartbeat_interval = 30000
+# 重连间隔（毫秒）
+reconnect_interval = 5000

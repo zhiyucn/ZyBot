@@ -1,0 +1,7 @@
+{
+    "host": "localhost",
+    "port": 25568,
+    "username": "Example",
+    "version": "1.21.8",
+    "auth": "microsoft"
+}

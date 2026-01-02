@@ -1,0 +1,10 @@
+[main]
+# ZyBot Main Config / 配置文件
+bot_id = "exp"
+# 机器人ID，用于区分不同的机器人实例，防止一个服务器有多个ZyBot运行，一条指令触发多个机器人，不要和服务器内的其他bot一样
+map_type = "BlueMap"
+# 开盒功能的位置查找方法，目前仅支持BlueMap
+map_url = "https://map.example.com"
+# 地图URL，用于开盒功能的位置查找
+owner = "Example"
+# 超级管理员
