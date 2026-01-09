@@ -73,7 +73,11 @@ module.exports = {
                 bot.chat(dataArray.text);
             })
             .catch(error => {
-                bot.chat(`查找结构失败：${error.message}`);
+                if (error.code === 'CONNREFUSED') {
+                    bot.chat('ZyBot Router服务未启动，你可以自建一个ZyBot Router服务来查找结构');
+                } else {
+                    bot.chat('查找结构失败，请检查参数是否正确');
+                }
             });
         }
     }

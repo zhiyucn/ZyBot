@@ -74,17 +74,13 @@ module.exports = {
      * @param {Object} bot - 机器人实例
      */
     async helpHandler(username, args, bot) {
-        bot.chat(`你好！${username}`);
-        // sleep，防止顺序混乱
-        await sleep(1000);
-        bot.chat(".zybot set-bot <id> 修改当前操作的机器人");
-        bot.chat(".zybot help 获取帮助信息");
-        bot.chat(".zybot 开盒 <玩家ID> [p] 开！添加p参数可私聊返回结果");
-        bot.chat(".zybot 来我这 让机器人tpa到你的位置挂机");
-        bot.chat(".zybot 摇色子 看看你的运气");
-        bot.chat(".zybot lock <原因> 锁定机器人传送功能，所有人可使用");
-        bot.chat(".zybot unlock 解锁机器人传送功能，需二次确认");
-        bot.chat(".zybot status 查看机器人当前状态");
+        // 获取所有可用命令的help信息
+        const commands = bot.pluginManager.getCommands();
+        for (const command of commands) {
+            if (command.name !== 'core') {  // 排除core命令
+                bot.chat(`命令：${command.name}，描述：${command.description}，用法：${command.usage}`);
+            }
+        }
     },
 
     /**
@@ -95,6 +91,11 @@ module.exports = {
      */
     async runCommandHandler(username, args, bot) {
         if (args.length > 0) {
+            // 检查权限
+            if (username !== bot.config.main.owner) {
+                bot.chat('你没有权限运行此命令！');
+                return;  // 直接return，不执行后续代码
+            }
             const command = args.join(' ');
             // 发送命令到Minecraft服务器
             bot.bot.chat(command);
