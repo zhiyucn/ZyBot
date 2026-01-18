@@ -1,0 +1,23 @@
+[groups]
+# 定义权限组
+admin = { users = ["admi"], inherits = ["moderator"] }
+moderator = { users = ["moderator"], inherits = ["user"] }
+user = { users = ["*"] } # 所有用户默认属于user组
+
+[commands]
+# 命令权限配置
+"stop" = "admin"
+"restart" = "admin"
+"lock" = "moderator"
+"unlock" = "moderator"
+"teleport" = "user"
+
+[plugins.core]
+# 核心插件自定义权限
+"run_command" = "admin"
+"teleport_request" = "moderator"
+
+[plugins.lock]
+# 锁定插件自定义权限
+"lock" = "moderator"
+"unlock" = "moderator"

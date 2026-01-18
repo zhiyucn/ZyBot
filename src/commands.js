@@ -5,9 +5,11 @@
 
 const logger = require('./logger');
 
+
 class CommandHandler {
     constructor(pluginManager) {
         this.pluginManager = pluginManager;
+        this.permissionManager = pluginManager.permissionManager;
     }
 
     /**
@@ -59,14 +61,44 @@ class CommandHandler {
         }
         
         if (!this.messagestrListener) {
-            this.messagestrListener = (message) => {
-                logger.debug(message);
-                if (message.includes('请求传送到你的位置')) {
-                    bot.chat("等我一下！");
-                    bot.chat("/tpaccept");
-                }
-            };
-        }
+            this.messagestrListener = async (message) => {
+                logger.debug(`收到系统消息: ${message}`);
+                // 正则表达式匹配XXX 请求传送到你的位置
+                const match = message.match(/^(.+?) 请求传送到你的位置$/);
+                if (match) {
+                            const playerName = match[1];
+                            logger.debug(`[TPA] 检测到传送请求，玩家: ${playerName}`);
+                            
+                            // 检查玩家是否有传送权限，插件id使用"core"
+                            if (this.permissionManager) {
+                                logger.debug(`[TPA] 开始检查玩家 ${playerName} 的传送权限`);
+                                
+                                // 详细的权限组信息调试
+                                logger.debug(`[TPA] 当前权限组状态:`, {
+                                    groups: Array.from(this.permissionManager.getGroups().entries()),
+                                    permissions: Array.from(this.permissionManager.getCustomPermissions().entries()).map(
+                                        ([plugin, perms]) => [plugin, Object.entries(perms)]
+                                    )
+                                });
+                                 
+                                var hasPermission = await this.permissionManager.checkCustomPermission(playerName, "core", "teleport_request")
+                                if (hasPermission) {
+                                    logger.debug(`[TPA] 玩家 ${playerName} 有传送权限，接受请求`);
+                                    // 告诉owner有人传送了bot
+                                bot.chat(`/msg ${bot.config.main.owner} ${playerName} 传送到bot的位置`);
+                                bot.chat("/tpaccept");
+                                } else {
+                                    logger.debug(`[TPA] 玩家 ${playerName} 没有传送权限，拒绝请求`);
+                                    bot.chat(`/msg ${playerName} ZyBot Error: 权限不够`);
+                                }
+                            } else {
+                                logger.warn('权限管理器未初始化，跳过权限检查');
+                                bot.chat("等我一下！");
+                                bot.chat("/tpaccept");
+                            }
+            }
+        };
+    }
         
         // 使用onBotReady回调机制，确保在bot连接或重连时都能正确注册监听器
         bot.onBotReady((currentBot) => {

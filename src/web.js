@@ -21,6 +21,7 @@ class WebServer {
      * @param {Object} bot - 机器人实例
      */
     start(bot) {
+        return 0;
         this.bot = bot;
         
         // MIME类型映射

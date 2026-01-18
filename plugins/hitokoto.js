@@ -28,8 +28,8 @@ module.exports = {
     description: '一言功能插件',
     version: '1.0.0',
     
-    // 标记是否已经输出过一言
-    hasSentHitokoto: false,
+    // 标记是否已经输出过一言 设置为true，让他不输出
+    hasSentHitokoto: true,
     
     /**
      * 插件激活

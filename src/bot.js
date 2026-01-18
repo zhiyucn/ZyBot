@@ -36,6 +36,28 @@ class MinecraftBot {
         // 监听器注册回调列表
         // 用于在bot重连时重新注册所有监听器
         this.listenerCallbacks = [];
+
+        // 设置日志级别为debug
+        logger.setLogLevel('debug');
+        
+        // 权限管理器
+        const PermissionManager = require('./permission');
+        this.permissionManager = new PermissionManager();
+        // 异步加载权限配置，不阻塞构造函数
+        this.loadPermissions().catch(err => {
+            logger.error('异步加载权限配置失败:', { error: err.message });
+        });
+    }
+
+    /**
+     * 加载权限配置
+     */
+    async loadPermissions() {
+        try {
+            await this.permissionManager.loadConfig();
+        } catch (error) {
+            logger.error('加载权限配置失败:', { error: error.message });
+        }
     }
 
     /**
@@ -56,20 +78,8 @@ class MinecraftBot {
             // 合并配置，TOML配置优先级更高
             return { ...config, ...tomlConfig };
         } catch (error) {
-            logger.warn('无法加载配置文件，使用默认配置:', { error: error.message });
-            return {
-                host: 'localhost',
-                port: 25565,
-                username: 'Fumumi_39',
-                version: '1.21.8',
-                auth: 'microsoft',
-                main: {
-                    bot_id: 'zy',
-                    map_type: 'BlueMap',
-                    map_url: 'https://map.example.com',
-                    owner: 'zhiyuHD'
-                }
-            };
+            logger.warn('无法加载配置文件');
+            exit(1);
         }
     }
 
@@ -94,7 +104,6 @@ class MinecraftBot {
             version: this.config.version,
             auth: this.config.auth
         });
-        
         // 只有在首次启动时重置锁定状态和启动时间
         if (this.reconnectAttempts === 0) {
             this.lock = false;
@@ -166,6 +175,24 @@ class MinecraftBot {
             }
         });
 
+        // 深度测试 - 输出过滤的socket事件
+        if (this.config.main && this.config.main.depth_test) {
+            const filteredSockets = [
+                'entity_head_rotation',
+                'entity_move_look',
+                'entity_velocity',
+                'rel_entity_move',
+                'scoreboard_score'
+            ];
+            
+            // 监听原始数据包事件
+            this.bot._client.on('packet', (name, params) => {
+                if (filteredSockets.includes(name)) {
+                    logger.debug(`[深度测试] 收到socket: ${name}`, params);
+                }
+            });
+        }
+
         // 错误事件
         this.bot.on('error', (err) => {
             logger.error('机器人错误:', { error: err.message });
@@ -221,7 +248,8 @@ class MinecraftBot {
      */
     stop() {
         if (this.bot) {
-            this.bot.chat('&#084cfbZ&#1458fby&#2064fbB&#2b70fbo&#377cfct&#4388fc正&#4f94fc在&#5ba0fc退&#66abfc出&#72b7fc游&#7ec3fc戏&#8acffd，&#95dbfd请&#a1e7fd稍&#adf3fd后')
+            
+            // this.bot.chat('&#084cfbZ&#1458fby&#2064fbB&#2b70fbo&#377cfct&#4388fc正&#4f94fc在&#5ba0fc退&#66abfc出&#72b7fc游&#7ec3fc戏&#8acffd，&#95dbfd请&#a1e7fd稍&#adf3fd后')
             this.bot.quit();
             logger.info('机器人已停止');
         }
@@ -247,10 +275,27 @@ class MinecraftBot {
     /**
      * 检查玩家是否有操作权限
      * @param {string} username - 玩家用户名
+     * @param {string} commandName - 命令名称（可选）
      * @returns {boolean} 是否有操作权限
      */
-    hasPermission(username) {
-        return this.currentPlayers.has(username) || username === this.config.main.owner;
+    hasPermission(username, commandName = null) {
+        // 检查是否是所有者
+        if (username === this.config.main.owner) {
+            return true;
+        }
+
+        // 检查当前操作的机器人
+        if (this.currentPlayers.has(username)) {
+            return true;
+        }
+
+        // 如果没有指定命令名，使用旧逻辑
+        if (!commandName) {
+            return false;
+        }
+
+        // 使用权限管理器检查权限
+        return this.permissionManager.checkCommandPermission(username, commandName);
     }
 
     /**

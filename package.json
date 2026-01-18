@@ -12,7 +12,10 @@
   "type": "commonjs",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
+    "minecraft-data": "^3.102.3",
+    "minecraft-protocol": "^1.62.0",
     "mineflayer": "^4.33.0",
+    "mineflayer-pathfinder": "^2.4.5",
     "prismarine-nbt": "^2.7.0",
     "protodef": "^1.19.0",
     "seedrandom": "^3.0.5",

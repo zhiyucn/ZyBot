@@ -35,13 +35,20 @@ class ZyBot {
         this.webServer = new WebServer();
         this.webServer.start(this.bot);
         
-        // 初始化插件管理器
-        this.pluginManager = new PluginManager();
+        // 初始化权限管理器（单例）
+        const PermissionManager = require('./src/permission');
+        if (!global.ZyBotPermissionManager) {
+            global.ZyBotPermissionManager = new PermissionManager();
+        }
+        this.permissionManager = global.ZyBotPermissionManager;
+        
+        // 初始化插件管理器并传递权限管理器
+        this.pluginManager = new PluginManager(this.permissionManager);
         
         // 加载插件
         this.pluginManager.loadPlugins('./plugins', this.bot);
         
-        // 初始化命令处理器
+        // 初始化命令处理器并传递插件管理器
         this.commandHandler = new CommandHandler(this.pluginManager);
         
         // 注册命令监听器

@@ -82,12 +82,6 @@ module.exports = {
             bot.chat(`机器人被${bot.lockedBy}锁定，锁定原因：${bot.lockReason}`);
             // sleep，防止顺序混乱
             await sleep(500);
-            bot.chat("&#ac0000不&#b80a0a要&#c41414轻&#d01e1e易&#db2929解&#e73333除&#f33d3d锁&#ff4747定");
-            // sleep，防止顺序混乱
-            await sleep(500);
-            bot.chat("&#ac0000这&#b60909是&#c11212十&#cb1b1b分&#d62424危&#e02c2c险&#ea3535的&#f53e3e行&#ff4747为");
-            // sleep，防止顺序混乱
-            await sleep(500);
             bot.chat('如果你执意要解除，请再次输入 .zybot unlock 命令确认');
             bot.unlockConfirm.set(username, true);
         }

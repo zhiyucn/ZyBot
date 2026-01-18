@@ -7,10 +7,11 @@ const path = require('path');
 const logger = require('./logger');
 
 class PluginManager {
-    constructor() {
+    constructor(permissionManager = null) {
         this.plugins = new Map(); // 已加载的插件
         this.commands = new Map(); // 已注册的命令
         this.events = new Map(); // 事件监听器
+        this.permissionManager = permissionManager; // 权限管理器
     }
 
     /**
@@ -61,13 +62,27 @@ class PluginManager {
         }
 
         try {
+            // 创建插件实例的副本，防止修改原始对象
+            const pluginInstance = { ...plugin };
+            
             // 激活插件
-            if (typeof plugin.activate === 'function') {
-                plugin.activate(bot, this, logger);
+            if (typeof pluginInstance.activate === 'function') {
+                // 传递权限管理器的只读代理
+                const permissionManagerProxy = new Proxy(this.permissionManager, {
+                    set: () => {
+                        throw new Error('插件无权直接修改权限管理器状态');
+                    },
+                    deleteProperty: () => {
+                        throw new Error('插件无权直接修改权限管理器状态');
+                    }
+                });
+                
+                // 传递完整的pluginManager实例
+                pluginInstance.activate(bot, this, permissionManagerProxy, logger);
             }
             
-            this.plugins.set(plugin.name, plugin);
-            logger.info(`插件 ${plugin.name} 加载成功`);
+            this.plugins.set(pluginInstance.name, pluginInstance);
+            logger.info(`插件 ${pluginInstance.name} 加载成功`);
         } catch (error) {
             logger.error(`激活插件 ${plugin.name} 失败:`, { error: error.message });
         }
@@ -110,8 +125,9 @@ class PluginManager {
      * @param {Function} handler - 命令处理函数
      * @param {Object} options - 命令选项
      * @param {string} pluginName - 插件名称
+     * @param {string} permissionGroup - 所需权限组（可选）
      */
-    registerCommand(commandName, handler, options = {}, pluginName) {
+    registerCommand(commandName, handler, options = {}, pluginName, permissionGroup = null) {
         if (this.commands.has(commandName)) {
             console.warn(`命令 ${commandName} 已存在，将被覆盖`);
         }
@@ -119,8 +135,17 @@ class PluginManager {
         this.commands.set(commandName, {
             handler,
             options,
-            plugin: pluginName
+            plugin: pluginName,
+            permissionGroup: permissionGroup || options.permissionGroup || null
         });
+
+        // 如果提供了权限组，注册到权限管理器
+        if (this.permissionManager && (permissionGroup || options.permissionGroup)) {
+            this.permissionManager.registerCommandPermission(
+                commandName, 
+                permissionGroup || options.permissionGroup
+            );
+        }
     }
 
     /**
@@ -137,12 +162,33 @@ class PluginManager {
             return false;
         }
 
+        // 检查权限
+        if (this.permissionManager && command.permissionGroup) {
+            const hasPermission = await this.permissionManager.checkCommandPermission(username, commandName);
+            if (!hasPermission) {
+                bot.chat(`你没有权限执行命令: ${commandName}`);
+                return false;
+            }
+        }
+
         try {
             await command.handler(username, args, bot);
             return true;
         } catch (error) {
             logger.error(`执行命令 ${commandName} 失败:`, { error: error.message });
             return false;
+        }
+    }
+
+    /**
+     * 注册自定义权限
+     * @param {string} pluginName - 插件名称
+     * @param {string} permissionName - 权限名称
+     * @param {string} permissionGroup - 所需权限组
+     */
+    registerCustomPermission(pluginName, permissionName, permissionGroup) {
+        if (this.permissionManager) {
+            this.permissionManager.registerCustomPermission(pluginName, permissionName, permissionGroup);
         }
     }
 
